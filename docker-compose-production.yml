@@ -1,0 +1,55 @@
+version: "3.6"
+
+networks:
+  nw:
+    driver: bridge
+
+services:
+  refinerycms-docker-example:
+    image: "registry2.refinerycms-docker-example.matho.sk:5000/refinerycms-docker-example:latest"
+    restart: always
+    env_file: .env.production
+    ports:
+      - "8082:80"
+    volumes:
+      - /data/refinerycms-docker-example:/app/shared
+    tty: true
+    environment:
+      - HOSTNAME=refinerycms-docker-example
+      - VIRTUAL_HOST=refinerycms-docker-example.matho.sk
+      - RAILS_ENV=production
+      - POSTGRES_HOST=46.101.99.215
+    depends_on:
+      - postgres
+    networks:
+      - nw
+
+  nginx_proxy:
+    image: "jwilder/nginx-proxy"
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    tty: true
+    environment:
+      - HOSTNAME=nginx_proxy
+    depends_on:
+      - refinerycms-docker-example
+    networks:
+      - nw
+
+  postgres:
+    image: "postgres:14.4"
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=superuserpwd123456
+      - HOSTNAME=postgres
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+    networks:
+      - nw
